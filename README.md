@@ -1,4 +1,4 @@
-# tinycanvas
+# [tinycanvas](https://kemmaw.github.io/tinycanvas/)
 
 Project Webpage and Video Demo
 The project web page will be graded based on the following:
