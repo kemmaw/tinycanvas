@@ -298,7 +298,6 @@
           <li><strong>Project:</strong> TinyCanvas</li>
           <li><strong>Course:</strong> EEC 172</li>
           <li><strong>Focus:</strong> Interactive embedded graphics and user input</li>
-          <li><strong>Deliverables:</strong> Documentation, reproducibility details, and video demo</li>
         </ul>
       </div>
     </div>
@@ -306,175 +305,211 @@
 
   <main>
     <div class="container">
+
       <section id="description" class="section-card">
         <p class="eyebrow">Project Description</p>
         <h2 class="section-title">Overview</h2>
         <p>
-          <strong>Replace this paragraph with your full project description.</strong> This section should mirror the
-          main content of your written report and clearly explain what TinyCanvas is, what problem it solves,
-          what inspired the design, and what makes the project technically interesting.
+          TinyCanvas is a low power handheld image editor that allows users to upload any picture and automatically edit them with an arcade like interface. 
+        <p style="margin-top:1rem;">
+          TinyCanvas connects to the internet to allow the user to upload an image through a custom TinyCanvas website interface. The image automatically 
+          populates onto the OLED display connected to the microcontroller. Once the user’s image is displayed on the microcontroller, they can use the joystick 
+          and on‑board button to draw on top of their image. When editing is complete, the edited image can be exported back to the TinyCanvas webpage where the user 
+          may download the final edited result.
         </p>
-        <br />
-        <p>
-          Suggested content to include here:
+        <p style="margin-top:1rem;">
+          The core feature of the editing interface is a colored pen overlay which the user can select from eight different color options. 
+          The device also supports a shake‑to‑undo feature that erases the last stroke drawn when the device detects a shake. Another feature 
+          of the system is image export: when the user finishes editing their photo, a button press exports the edited photo from the microcontroller 
+          back to the user’s TinyCanvas webpage.
         </p>
-        <ul>
-          <li>The purpose of TinyCanvas and the user experience you wanted to create</li>
-          <li>The embedded platform, peripherals, and hardware components you used</li>
-          <li>The main system features and how the user interacts with them</li>
-          <li>The engineering challenges you encountered and how you solved them</li>
-          <li>The final outcome, limitations, and possible future improvements</li>
-        </ul>
       </section>
+
 
       <section class="grid-2">
+
         <div class="section-card">
-          <p class="eyebrow">Design Goals</p>
-          <h2 class="section-title">Objectives</h2>
-          <div class="info-box">
-            <h3>Primary Goal</h3>
-            <p>
-              Describe the core goal of TinyCanvas here. For example: creating a compact digital drawing
-              interface on embedded hardware with responsive input and visible real-time feedback.
-            </p>
-          </div>
-          <div class="info-box" style="margin-top: 1rem;">
-            <h3>Secondary Goals</h3>
-            <p>
-              Add any secondary project goals here, such as user friendliness, efficient memory use,
-              reliable communication, or smooth rendering performance.
-            </p>
+          <p class="eyebrow">System Design</p>
+          <h2 class="section-title">Functional Specification</h2>
+
+          <p>
+            The TinyCanvas device operates as a finite state machine with several high‑level operating states.
+          </p>
+
+          <ul>
+            <li><strong>Initialization:</strong> Hardware peripherals are initialized including ADC, SPI, I2C, and UART. The device then connects to Wi‑Fi and establishes an MQTT connection with AWS IoT.</li>
+            <li><strong>Idle / Waiting for Job:</strong> The device subscribes to its MQTT job topic and waits for an incoming editing request.</li>
+            <li><strong>Image Download:</strong> Upon receiving a job notification, the device downloads the prepared image from S3 using a presigned GET URL.</li>
+            <li><strong>Editing Mode:</strong> The user edits the image using the joystick and draw button while cursor movement, drawing operations, and undo events are processed in real time.</li>
+            <li><strong>Upload Edited Image:</strong> When the user presses the export button, the edited image buffer is uploaded to S3 using the presigned PUT URL.</li>
+            <li><strong>Return to Idle:</strong> After upload completion the device returns to the idle state and waits for the next job.</li>
+          </ul>
+
+        </div>
+
+
+        <div class="section-card">
+          <p class="eyebrow">Key Features</p>
+          <h2 class="section-title">Editing Interface</h2>
+
+          <div class="feature-list">
+
+            <div class="feature-item">
+              <h4>Image Upload</h4>
+              <p>Users upload a JPG image through the TinyCanvas website which automatically sends the image to the microcontroller for editing.</p>
+            </div>
+
+            <div class="feature-item">
+              <h4>Joystick Cursor Control</h4>
+              <p>An external analog joystick controls cursor movement on the OLED display using ADC sampling.</p>
+            </div>
+
+            <div class="feature-item">
+              <h4>Colored Drawing Pen</h4>
+              <p>The user can draw directly on the image using eight selectable colors displayed on the OLED screen.</p>
+            </div>
+
+            <div class="feature-item">
+              <h4>Shake to Undo</h4>
+              <p>An onboard accelerometer detects a shake gesture and restores the previous image state to undo the last drawing action.</p>
+            </div>
+
+            <div class="feature-item">
+              <h4>Image Export</h4>
+              <p>When editing is finished, the microcontroller uploads the edited image back to AWS where it can be downloaded from the TinyCanvas webpage.</p>
+            </div>
+
           </div>
         </div>
 
-        <div class="section-card">
-          <p class="eyebrow">System Features</p>
-          <h2 class="section-title">Key Features</h2>
-          <div class="feature-list">
-            <div class="feature-item">
-              <h4>Feature 1</h4>
-              <p>Describe one major TinyCanvas feature here.</p>
-            </div>
-            <div class="feature-item">
-              <h4>Feature 2</h4>
-              <p>Describe one major TinyCanvas feature here.</p>
-            </div>
-            <div class="feature-item">
-              <h4>Feature 3</h4>
-              <p>Describe one major TinyCanvas feature here.</p>
-            </div>
-            <div class="feature-item">
-              <h4>Feature 4</h4>
-              <p>Describe one major TinyCanvas feature here.</p>
-            </div>
-          </div>
-        </div>
       </section>
+
+
+      <section class="section-card">
+        <p class="eyebrow">System Architecture</p>
+        <h2 class="section-title">AWS + Device Pipeline</h2>
+
+        <p>
+          The TinyCanvas architecture consists of two primary components: an AWS cloud pipeline and the CC3200 microcontroller device. Two Amazon S3 buckets are used within the system. One bucket hosts the static TinyCanvas webpage, while another bucket manages the flow of image processing through several folders.
+        </p>
+
+        <p style="margin-top:1rem;">
+          When a user uploads an image through the webpage, the upload occurs through an API Gateway which triggers a Lambda function to generate a presigned upload URL. The image is then placed into the <strong>incoming/</strong> folder of the processing bucket. An S3 event triggers a Lambda processing function which downsamples the image to 128×128 resolution and converts it to RGB565 format suitable for the OLED display.
+        </p>
+
+        <p style="margin-top:1rem;">
+          The processed image is written to the <strong>prepared/</strong> folder and an MQTT job notification is sent through AWS IoT Core. The CC3200 device subscribes to this topic and receives the job information including the presigned URLs required to download and upload the image.
+        </p>
+
+        <p style="margin-top:1rem;">
+          The CC3200 downloads the prepared image using HTTPS, performs local editing operations on the RGB565 buffer, and displays the image on the OLED display via SPI. User input is processed through the joystick using ADC, the accelerometer using I2C, and push buttons through GPIO.
+        </p>
+
+        <p style="margin-top:1rem;">
+          Once editing is complete, the modified image is uploaded back to S3 using a presigned PUT URL. A final Lambda function converts the RGB565 image back into a standard PNG image and stores it in the <strong>results/</strong> folder so the webpage can display and download the edited image.
+        </p>
+
+      </section>
+
 
       <section class="section-card">
         <p class="eyebrow">Implementation</p>
-        <h2 class="section-title">Hardware and Software Design</h2>
+        <h2 class="section-title">Hardware and Software</h2>
+
         <div class="grid-3">
+
           <div class="info-box">
             <h3>Hardware</h3>
             <p>
-              List the board, display, input devices, sensors, communication modules, and any other hardware
-              used in your build.
+              The hardware platform is based on the Texas Instruments CC3200 LaunchPad development board. The system uses a 1.5 inch 128×128 SSD1351 OLED display connected via SPI for image rendering. An analog joystick provides cursor movement and drawing control using ADC inputs. An onboard accelerometer connected through I2C detects shake gestures for the undo feature. Two push buttons connected through GPIO control drawing and exporting actions.
             </p>
           </div>
+
           <div class="info-box">
             <h3>Software</h3>
             <p>
-              Summarize the code structure, drivers, libraries, state machines, communication logic,
-              drawing logic, and overall program flow.
+              The microcontroller software maintains a logical copy of the OLED display in a 2D array buffer representing the canvas. Cursor movement and drawing operations update this buffer while also updating the physical display using graphics functions from the Adafruit_GFX library. Each stroke is stored so the system can revert to the previous canvas state when a shake gesture is detected.
             </p>
           </div>
+
           <div class="info-box">
-            <h3>Integration</h3>
+            <h3>AWS Integration</h3>
             <p>
-              Explain how the hardware and software interact to produce the final user experience.
+              AWS services including S3, Lambda, API Gateway, and IoT Core coordinate the image processing workflow. Lambda functions generate presigned URLs, process images into RGB565 format, and convert edited images back into PNG format. MQTT communication through AWS IoT Core notifies the device when a new editing job is available.
             </p>
           </div>
+
         </div>
+
       </section>
 
-      <section class="section-card">
-        <p class="eyebrow">Reproducibility</p>
-        <h2 class="section-title">How to Recreate TinyCanvas</h2>
-        <p>
-          This section is especially important because the project webpage is graded on documentation and
-          reproducibility. Someone reading this page should be able to understand what parts they need,
-          how the system is connected, and how to run your project.
-        </p>
-        <ol>
-          <li><strong>Required components:</strong> List all required hardware parts and development tools.</li>
-          <li><strong>Wiring/setup:</strong> Describe how components are connected.</li>
-          <li><strong>Development environment:</strong> State the IDE, compiler, SDK, and libraries used.</li>
-          <li><strong>Build instructions:</strong> Explain how to compile and flash the project.</li>
-          <li><strong>Usage instructions:</strong> Explain how a user interacts with TinyCanvas after startup.</li>
-        </ol>
-        <div class="code-block">
-&lt;!-- Optional: add wiring notes, build commands, or repository link here --&gt;
-&lt;!-- Example --&gt;
-&lt;!-- git clone [your repository link] --&gt;
-&lt;!-- Open project in Code Composer Studio --&gt;
-&lt;!-- Build and flash to target board --&gt;
-        </div>
-      </section>
 
       <section class="section-card">
-        <p class="eyebrow">Results</p>
-        <h2 class="section-title">Final Outcome and Reflection</h2>
+        <p class="eyebrow">Challenges</p>
+        <h2 class="section-title">Development Challenges</h2>
+
         <p>
-          Use this section to summarize what worked well in the final version of TinyCanvas,
-          what performance or functionality you achieved, and what you learned during development.
+          The largest challenge during development occurred when integrating the AWS microcontroller code with the canvas editing functionality. Both the backend cloud pipeline and the embedded editing interface were fully functional when developed independently on separate boards, but combining them introduced several integration issues.
         </p>
+
         <ul>
-          <li>What features were successfully implemented?</li>
-          <li>What technical challenges were the hardest?</li>
-          <li>What would you improve if you had more time?</li>
+          <li>Button function conflicts</li>
+          <li>Screen initialization issues</li>
+          <li>Memory limitations</li>
+          <li>TLS return communication errors</li>
         </ul>
+
+        <p style="margin-top:1rem;">
+          One suspected cause of the failures was SRAM limitations on the CC3200. Both independent projects were already near the SRAM capacity limit. To overcome this limitation, the linker configuration file <code>cc3200v1p32.cmd</code> was modified to expand SRAM allocation to approximately 233 KB of usable memory.
+        </p>
+
       </section>
+
+
+      <section class="section-card">
+        <p class="eyebrow">Future Work</p>
+        <h2 class="section-title">Possible Improvements</h2>
+
+        <ul>
+          <li>Replace presigned URLs with job IDs and S3 keys to reduce MQTT packet size and prevent URL expiry during long edits.</li>
+          <li>Add automatic Wi‑Fi and MQTT reconnection along with job retry and queue handling for robustness.</li>
+          <li>Decouple editing time from cloud timeout constraints using a state‑based upload process.</li>
+          <li>Improve device robustness through better power regulation, OLED brightness control, and low‑power Wi‑Fi operation.</li>
+        </ul>
+
+      </section>
+
 
       <section id="video-demo" class="section-card">
         <p class="eyebrow">Video Demo</p>
         <h2 class="section-title">Project Demonstration</h2>
-        <p>
-          Your video should clearly demonstrate each major feature of TinyCanvas. Replace the placeholder
-          below with your final embedded video or a linked recording.
-        </p>
 
-        <div class="video-placeholder">
-          <h3>Insert Video Demo Here</h3>
-          <p>
-            Replace this placeholder with an embedded YouTube video, Google Drive preview, or local video file.
-          </p>
-        </div>
-
-        <div class="code-block">
-&lt;!-- Example YouTube embed template --&gt;
-&lt;iframe width="100%" height="500"
-        src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+        <iframe width="100%" height="500"
+        src="https://www.youtube.com/embed/fxvk2ln9NLU"
         title="TinyCanvas Demo"
         frameborder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen&gt;
-&lt;/iframe&gt;
-        </div>
+        allowfullscreen>
+        </iframe>
+
       </section>
+
 
       <section class="section-card">
         <p class="eyebrow">Team</p>
         <h2 class="section-title">Project Credits</h2>
-        <p>
-          Add your team member names, roles, and contributions here.
-        </p>
+
         <ul>
-          <li><strong>Name:</strong> Role / responsibilities</li>
-          <li><strong>Name:</strong> Role / responsibilities</li>
-          <li><strong>Name:</strong> Role / responsibilities</li>
+          <li><strong>Kemma Snyder</strong> — Electrical and Computer Engineering, University of California Davis</li>
+          <li><strong>John D. Wilson</strong> — Electrical and Computer Engineering, University of California Davis</li>
         </ul>
+
+        <p style="margin-top:1rem;">
+          Special thanks to the Electrical and Computer Engineering Department at the University of California, Davis, Professor Soheil Ghiasi, and Teaching Assistant Randall Fowler for their guidance and support throughout this project.
+        </p>
+
       </section>
+
     </div>
   </main>
 
